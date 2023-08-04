@@ -48,20 +48,20 @@ if __name__ == "__main__":
         parse.quote(to_bid_dt, encoding='cp949'),
         parse.quote(inst_nm, encoding='cp949')
 
-    )  # 크롤링할 웹사이트 URL을 입력해주세요.
+    )  # 크롤링할 웹사이트 URL을 입력
 
     print(bid_nm, from_bid_dt, to_bid_dt, inst_nm)
     page_contents = get_page_contents(url)
     if page_contents:
         soup = extract_data_from_page(page_contents)
 
-        # 클래스가 "results"인 요소를 찾습니다.
+        # 클래스가 "results"인 요소
         results_div = soup.find('div', class_='results')
 
-        # 결과 div 안에서 tbody 태그를 찾습니다.
+        # 결과 div 안에서 tbody
         tbody_tag = results_div.find('tbody')
 
-        # tbody 태그 안에서 첫 번째 tr 태그를 찾습니다.
+        # tbody 태그 안에서 첫 번째 tr
         tr_tags = tbody_tag.find_all('tr')
         send_data = []
         for tr_tag in tr_tags:
@@ -70,10 +70,10 @@ if __name__ == "__main__":
                 data_json = {}
 
                 for i, element in enumerate(first_td):
-                    # div 태그 안의 텍스트를 추출합니다.
+                    # div 태그 안의 텍스트를 추출
                     text = element.find('div').text
 
-                    # 알파벳 키와 해당하는 텍스트 값을 매칭합니다.
+                    # 임시로 지정한 키값
                     keys = ["task", "date", "order", "orderSet", "tas5k", "da1te", "o3rder", "orderSe1t", "tas2k",
                             "date3"]
                     if i < len(keys):
@@ -84,7 +84,7 @@ if __name__ == "__main__":
             else:
                 print("Error.")
 
-        # tr 태그 안에서 첫 번째 td 태그를 찾습니다.
+        # tr 태그 안에서 첫 번째 td 태그
 
         print(url)
         print("send_data : ", send_data)
