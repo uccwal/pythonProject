@@ -18,12 +18,13 @@ CORS(app)
 api_url = "http://localhost:5000/api"
 
 # MongoDB에 연결
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+client = pymongo.MongoClient("mongodb://mongo:mongo@localhost:27017/")
 db = client["mydb"]
 collection = db["testdata"]
 
 # 이전 스크래핑 결과를 저장하는 리스트
 previous_data = []
+
 
 # 공고 정보 스크래핑 함수
 def scrape_bid_info():
@@ -50,6 +51,7 @@ def scrape_bid_info():
     else:
         return None
 
+
 # 웹 페이지 내용을 가져오는 함수
 def get_page_contents(url):
     response = requests.get(url)
@@ -59,10 +61,12 @@ def get_page_contents(url):
         print("페이지를 가져오는데 실패했습니다.")
         return None
 
+
 # 웹 페이지에서 데이터를 추출하는 함수
 def extract_data_from_page(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     return soup
+
 
 # 공고 데이터를 파싱하는 함수
 def parse_bid_data(soup):
@@ -88,14 +92,18 @@ def parse_bid_data(soup):
             data_json = {}
             for i, element in enumerate(first_td):
                 text = element.find('div').text
-                keys = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9",
+                #keys = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9",
+                #       "data10", "data11", "data12"]
+                keys = ["work", "announcementNumber", "classification", "announcementName", "announcementAgency", "demandAgency", "contractMethod", "dateOfEntry", "data9",
                         "data10", "data11", "data12"]
+                # keys [업무, 공고번호-치수, 분류, 공고명, 공고기관, 수요기관, 계약방법, 입력일시, 공동수급, 투찰]
                 if i < len(keys):
                     data_json[keys[i]] = text
             data_json.update(link_list)
             send_data.append(data_json)
 
     return send_data
+
 
 # 주기적으로 호출할 함수를 정의합니다.
 def periodic_task():
@@ -114,8 +122,10 @@ def periodic_task():
         for data in scraped_data:
             # 중복 데이터 여부를 확인하기 위해 조건을 설정합니다.
             condition = {
-                "data1": data["data1"],  # 중복을 확인할 필드 1
-                "data2": data["data2"],  # 중복을 확인할 필드 2
+                #"data1": data["data1"],  # 중복을 확인할 필드 1
+                #"data2": data["data2"],  # 중복을 확인할 필드 2
+                "work": data["work"],
+                "announcementNumber": data["announcementNumber"]
                 # 필요한 다른 중복 확인 필드들을 추가할 수 있습니다.
             }
             existing_data = collection.find_one(condition)
@@ -142,14 +152,17 @@ def periodic_task():
 
     print("Scheduled task completed")
 
+
 # 스케줄링을 설정합니다. 10초마다 함수를 실행하도록 설정합니다.
 schedule.every(10).seconds.do(periodic_task)
+
 
 # 스케줄링 작업을 백그라운드에서 실행합니다.
 def schedule_loop():
     while True:
         schedule.run_pending()
         time.sleep(1)  # 1초마다 스케줄링을 확인합니다.
+
 
 # Flask 애플리케이션을 시작하기 전에 스케줄링 스레드를 시작합니다.
 if __name__ == '__main__':

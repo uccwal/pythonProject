@@ -1,0 +1,33 @@
+도커 설치
+
+docker pull mongo
+
+docker run -d --name mongodb -v /xxx/xxx/xxx/docker/mongo:/data/db
+-e MONGO_INITDB_ROOT_USERNAME=root
+-e MONGO_INITDB_ROOT_PASSWORD=root
+-p 27017:27017 mongo
+
+
+몽고디비 접속
+mongosh -u root -p root
+
+계정생성
+use admin;
+db.createUser(
+  {
+    user: "mongo",
+    pwd:  "mongo",
+    roles: [
+    	{ "role" : "root", "db" : "mydb" },
+	]
+  }
+)
+
+디비생성
+use mydb
+
+컬렉션 생성
+db.createCollection("testdata")
+
+
+db.testdata.find({"announcementAgency": /교육청|국무조정실/}).pretty();
