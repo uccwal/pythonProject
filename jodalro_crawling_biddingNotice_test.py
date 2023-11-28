@@ -6,10 +6,12 @@ import requests
 from bs4 import BeautifulSoup
 from urllib import parse
 from datetime import date, timedelta
+from datetime import datetime
 import pymongo
 import schedule
 import time
 import threading
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -18,7 +20,7 @@ CORS(app)
 api_url = "http://localhost:5000/api"
 
 # MongoDB에 연결
-client = pymongo.MongoClient("mongodb://mongo:mongo@localhost:27017/")
+client = pymongo.MongoClient("mongodb://root:root@localhost:27017/")
 db = client["mydb"]
 collection = db["testdata"]
 
@@ -37,9 +39,9 @@ def scrape_bid_info():
     # 공고 게시 종료일
     to_bid_dt = today.strftime("%Y/%m/%d")
 
-    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=&bidNm=&searchDtType=1&fromBidDt={}&toBidDt={}&fromOpenBidDt=&toOpenBidDt=&radOrgan=2&instNm=&instSearchRangeType=&refNo=&area=&areaNm=&strArea=&orgArea=&industry=&industryCd=&upBudget=&downBudget=&budgetCompare=&detailPrdnmNo=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100".format(
+    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=5&bidNm=&searchDtType=1&fromBidDt={}&toBidDt={}&fromOpenBidDt=&toOpenBidDt=&radOrgan=2&instNm=&instSearchRangeType=&refNo=&area=&areaNm=&strArea=&orgArea=&industry=&industryCd=&upBudget=&downBudget=&budgetCompare=&detailPrdnmNo=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100&currentPageNo=1".format(
         parse.quote(from_bid_dt, encoding='cp949'),
-        parse.quote(to_bid_dt, encoding='cp949')
+        parse.quote(from_bid_dt, encoding='cp949')
     )  # 크롤링할 웹사이트 URL을 입력
 
     page_contents = get_page_contents(url)
@@ -68,13 +70,20 @@ def extract_data_from_page(html_content):
     return soup
 
 
+
 # 공고 데이터를 파싱하는 함수
 def parse_bid_data(soup):
     results_div = soup.find('div', class_='results')
     tbody_tag = results_div.find('tbody')
     tr_tags = tbody_tag.find_all('tr')
+
     send_data = []
     link_list = {}
+    date_list = {}
+
+
+    #date_list_entry = ["startDate", "endDate"]
+    #for i, date_entry in enumerate(tr_tags)
 
     key_list = ["link1", "link2", "link3", "link4"]
     for i, links in enumerate(tr_tags):
@@ -96,14 +105,30 @@ def parse_bid_data(soup):
                 #       "data10", "data11", "data12"]
                 keys = ["work", "announcementNumber", "classification", "announcementName", "announcementAgency", "demandAgency", "contractMethod", "dateOfEntry", "data9",
                         "data10", "data11", "data12"]
-                # keys [업무, 공고번호-치수, 분류, 공고명, 공고기관, 수요기관, 계약방법, 입력일시, 공동수급, 투찰]
                 if i < len(keys):
-                    data_json[keys[i]] = text
+                    if keys[i] == "dateOfEntry":
+                        # Extract start and end dates
+                        start_date, end_date = extract_dates(text)
+                        if start_date and end_date:
+                            data_json["startDate"] = start_date
+                            data_json["endDate"] = end_date
+                    else:
+                        data_json[keys[i]] = text
+
+
             data_json.update(link_list)
             send_data.append(data_json)
 
     return send_data
 
+def extract_dates(date_string):
+    # Using regular expression to extract dates inside parentheses
+    match = re.match(r'.*?(\d{4}/\d{2}/\d{2} \d{2}:\d{2})\((\d{4}/\d{2}/\d{2} \d{2}:\d{2})\)', date_string)
+    if match:
+        return match.group(1), match.group(2)
+
+    # Return None if the format doesn't match
+    return None, None
 
 # 주기적으로 호출할 함수를 정의합니다.
 def periodic_task():
@@ -141,7 +166,7 @@ def periodic_task():
         if new_data:
             # ObjectId 필드를 제거하고 JSON으로 직렬화
             new_data_json = [item for item in new_data if "_id" not in item]
-            print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
+            #print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
 
         # 이전 데이터를 현재 스크래핑 결과로 업데이트
         previous_data = scraped_data
@@ -154,7 +179,7 @@ def periodic_task():
 
 
 # 스케줄링을 설정합니다. 10초마다 함수를 실행하도록 설정합니다.
-schedule.every(10).seconds.do(periodic_task)
+schedule.every(2).seconds.do(periodic_task)
 
 
 # 스케줄링 작업을 백그라운드에서 실행합니다.
