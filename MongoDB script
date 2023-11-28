@@ -31,3 +31,10 @@ db.createCollection("testdata")
 
 
 db.testdata.find({"announcementAgency": /교육청|국무조정실/}).pretty();
+
+db.testdata.find({
+    "work": "공사",
+    $or: [
+        { "announcementAgency": /교육청|국무조정실/ }
+    ]
+}).pretty();

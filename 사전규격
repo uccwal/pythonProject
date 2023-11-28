@@ -1,0 +1,21 @@
+https://www.g2b.go.kr:8081/ep/preparation/prestd/preStdPublishList.do
+
+URL = taskClCd=5&orderbyItem=1&searchType=1&supplierLoginYn=N&instCl=2&instNm=&dminstCd=&taskClCds=5&prodNm=&swbizTgYn=&searchDetailPrdnmNo=&searchDetailPrdnm=&fromRcptDt=2023%2F10%2F29&toRcptDt=2023%2F11%2F28&recordCountPerPage=10
+
+taskClCd: 5
+orderbyItem: 1
+searchType: 1
+supplierLoginYn: N
+instCl: 2
+instNm:
+dminstCd:
+taskClCds: 5
+prodNm:
+swbizTgYn:
+searchDetailPrdnmNo:
+searchDetailPrdnm:
+fromRcptDt: 2023/10/29
+toRcptDt: 2023/11/28
+recordCountPerPage: 10
+
+링크 - https://www.g2b.go.kr:8082/ep/preparation/prestd/preStdDtl.do?preStdRegNo=1370678
