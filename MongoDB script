@@ -38,3 +38,63 @@ db.testdata.find({
         { "announcementAgency": /교육청|국무조정실/ }
     ]
 }).pretty();
+
+
+db.createCollection("testdata");
+db.createCollection("testdata2");
+
+db.grantRolesToUser("mydb", [{ role: "dbAdmin", db: "mydb" }]);
+
+
+use mydb;
+
+db.runCommand({ connectionStatus: 1 });
+
+use admin;
+db.auth("admin","admin");
+db.createUser({
+    user: "mongo",
+    pwd: "mongo",
+    roles: [{ role: "dbAdmin", db: "mydb" }]
+})
+use admin;
+
+db.dropUser("mongo");
+
+db.testdata2.find({
+    "dateAndTime": /2023-11-27/
+}).pretty();
+
+db.testdata2.find({
+    "dateAndTime": /2023-11-22|2023-11-23|2023-11-21/,
+    $or: [
+        { "demandAgency": /한국국토정보공사|소상공인시장진흥공단|한국환경산업기술원|국회사무처|한국관광공사|정보통신산업진흥원|산림청/ }
+    ]
+}).pretty();
+
+db.testdata.find({
+    $or: [
+        {
+            "demandAgency": {
+                $regex: /한국국토정보공사|소상공인시장진흥공단|한국환경산업기술원|국회사무처|한국관광공사|정보통신산업진흥원|산림청/
+            },
+            "announcementName": {
+                $regex: /건축|통근/
+            }
+        },
+        // Add more $or conditions if needed
+    ]
+}).pretty();
+
+db.testdata.find({
+    "dateAndTime": {
+        $gte: ISODate("2023-11-27T00:00:00.000Z"),
+        $lt: ISODate("2023-11-28T00:00:00.000Z")
+    }
+}).pretty();
+
+
+use mydb;
+db.testdata.find({"announcementAgency": /안동|인천/}).pretty();
+
+
