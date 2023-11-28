@@ -1,12 +1,11 @@
-import json
 from bson import ObjectId  # 추가
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
 from urllib import parse
 from datetime import date, timedelta
-from datetime import datetime
+
 import pymongo
 import schedule
 import time
@@ -22,7 +21,7 @@ api_url = "http://localhost:5000/api"
 # MongoDB에 연결
 client = pymongo.MongoClient("mongodb://root:root@localhost:27017/")
 db = client["mydb"]
-collection = db["testdata"]
+collection = db["BIDDING_ANNOUNCEMENT"] #입찰공고
 
 # 이전 스크래핑 결과를 저장하는 리스트
 previous_data = []
@@ -38,10 +37,14 @@ def scrape_bid_info():
 
     # 공고 게시 종료일
     to_bid_dt = today.strftime("%Y/%m/%d")
+    # to_bid_dt = (today - timedelta(days=1)).strftime("%Y/%m/%d")
 
-    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=5&bidNm=&searchDtType=1&fromBidDt={}&toBidDt={}&fromOpenBidDt=&toOpenBidDt=&radOrgan=2&instNm=&instSearchRangeType=&refNo=&area=&areaNm=&strArea=&orgArea=&industry=&industryCd=&upBudget=&downBudget=&budgetCompare=&detailPrdnmNo=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100&currentPageNo=1".format(
+    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=&bidNm=&searchDtType" \
+          "=1&fromBidDt={}&toBidDt={}&fromOpenBidDt=&toOpenBidDt=&radOrgan=2&instNm=&instSearchRangeType=&refNo=&area" \
+          "=&areaNm=&strArea=&orgArea=&industry=&industryCd=&upBudget=&downBudget=&budgetCompare=&detailPrdnmNo" \
+          "=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100&currentPageNo=1".format(
         parse.quote(from_bid_dt, encoding='cp949'),
-        parse.quote(from_bid_dt, encoding='cp949')
+        parse.quote(to_bid_dt, encoding='cp949')
     )  # 크롤링할 웹사이트 URL을 입력
 
     page_contents = get_page_contents(url)
@@ -70,7 +73,6 @@ def extract_data_from_page(html_content):
     return soup
 
 
-
 # 공고 데이터를 파싱하는 함수
 def parse_bid_data(soup):
     results_div = soup.find('div', class_='results')
@@ -79,11 +81,6 @@ def parse_bid_data(soup):
 
     send_data = []
     link_list = {}
-    date_list = {}
-
-
-    #date_list_entry = ["startDate", "endDate"]
-    #for i, date_entry in enumerate(tr_tags)
 
     key_list = ["link1", "link2", "link3", "link4"]
     for i, links in enumerate(tr_tags):
@@ -101,9 +98,10 @@ def parse_bid_data(soup):
             data_json = {}
             for i, element in enumerate(first_td):
                 text = element.find('div').text
-                #keys = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9",
+                # keys = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9",
                 #       "data10", "data11", "data12"]
-                keys = ["work", "announcementNumber", "classification", "announcementName", "announcementAgency", "demandAgency", "contractMethod", "dateOfEntry", "data9",
+                keys = ["work", "announcementNumber", "classification", "announcementName", "announcementAgency",
+                        "demandAgency", "contractMethod", "dateOfEntry", "data9",
                         "data10", "data11", "data12"]
                 if i < len(keys):
                     if keys[i] == "dateOfEntry":
@@ -115,20 +113,27 @@ def parse_bid_data(soup):
                     else:
                         data_json[keys[i]] = text
 
-
             data_json.update(link_list)
             send_data.append(data_json)
 
     return send_data
 
+
 def extract_dates(date_string):
     # Using regular expression to extract dates inside parentheses
     match = re.match(r'.*?(\d{4}/\d{2}/\d{2} \d{2}:\d{2})\((\d{4}/\d{2}/\d{2} \d{2}:\d{2})\)', date_string)
     if match:
-        return match.group(1), match.group(2)
+        start_date, end_date = match.group(1), match.group(2)
+
+        # Replace '/' with '-'
+        start_date = start_date.replace('/', '-')
+        end_date = end_date.replace('/', '-')
+
+        return start_date, end_date
 
     # Return None if the format doesn't match
     return None, None
+
 
 # 주기적으로 호출할 함수를 정의합니다.
 def periodic_task():
@@ -147,8 +152,8 @@ def periodic_task():
         for data in scraped_data:
             # 중복 데이터 여부를 확인하기 위해 조건을 설정합니다.
             condition = {
-                #"data1": data["data1"],  # 중복을 확인할 필드 1
-                #"data2": data["data2"],  # 중복을 확인할 필드 2
+                # "data1": data["data1"],  # 중복을 확인할 필드 1
+                # "data2": data["data2"],  # 중복을 확인할 필드 2
                 "work": data["work"],
                 "announcementNumber": data["announcementNumber"]
                 # 필요한 다른 중복 확인 필드들을 추가할 수 있습니다.
@@ -166,7 +171,7 @@ def periodic_task():
         if new_data:
             # ObjectId 필드를 제거하고 JSON으로 직렬화
             new_data_json = [item for item in new_data if "_id" not in item]
-            #print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
+            # print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
 
         # 이전 데이터를 현재 스크래핑 결과로 업데이트
         previous_data = scraped_data
@@ -195,4 +200,4 @@ if __name__ == '__main__':
     scheduler_thread.daemon = True
     scheduler_thread.start()
 
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

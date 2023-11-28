@@ -8,8 +8,8 @@ CORS(app)
 
 client = pymongo.MongoClient("mongodb://root:root@localhost:27017/")
 db = client["mydb"]
-collection1 = db["testdata"]
-collection2 = db["testdata2"]
+collection1 = db["DICTIONARY_STANDARD"]
+collection2 = db["BIDDING_ANNOUNCEMENT"]
 
 yesterday = datetime.now() - timedelta(days=1)
 yesterday_str = yesterday.strftime("%Y-%m-%d")
@@ -29,7 +29,7 @@ def prest_call():
 
     # MongoDB 쿼리 생성
     query = {
-        "startDate": {"$regex": yesterday_str},
+        #"startDate": {"$regex": yesterday_str},
         "demandAgency": {"$in": hardcoded_agencies}
     }
     # MongoDB에서 쿼리 실행
@@ -45,7 +45,7 @@ def prest_call2():
     # MongoDB 쿼리 생성
 
     query = {
-        "dateAndTime": {"$regex": yesterday_str},
+        #"dateAndTime": {"$regex": yesterday_str},
         "demandAgency": {"$in": hardcoded_agencies}
     }
 
