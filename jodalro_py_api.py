@@ -8,8 +8,8 @@ CORS(app)
 
 client = pymongo.MongoClient("mongodb://root:root@localhost:27017/")
 db = client["mydb"]
-collection1 = db["DICTIONARY_STANDARD"]
-collection2 = db["BIDDING_ANNOUNCEMENT"]
+DICTIONARY_STANDARD = db["DICTIONARY_STANDARD"]
+BIDDING_ANNOUNCEMENT = db["BIDDING_ANNOUNCEMENT"]
 
 yesterday = datetime.now() - timedelta(days=1)
 yesterday_str = yesterday.strftime("%Y-%m-%d")
@@ -21,7 +21,7 @@ hardcoded_agencies = ["한국사회보장정보원", "대검찰청", "한국출�
                       "여성가족부", "국회사무처", "국방정보본부", "태권도진흥재단", "보건복지부", "외교부"
                       ]
 
-@app.route('/api/collection1', methods=['GET'])
+@app.route('/api/BIDDING_ANNOUNCEMENT', methods=['GET'])
 #GFC 기관
 def prest_call():
 
@@ -33,14 +33,29 @@ def prest_call():
         "demandAgency": {"$in": hardcoded_agencies}
     }
     # MongoDB에서 쿼리 실행
-    result = list(collection1.find(query, {"_id": 0}))  # "_id" 필드는 반환하지 않음
+    result = list(BIDDING_ANNOUNCEMENT.find(query, {"_id": 0}))  # "_id" 필드는 반환하지 않음
 
     return jsonify(result)
-@app.route('/api/collection2', methods=['GET'])
+
+@app.route('/api/v1', methods=['POST'])
+# GFC 기관
+def v1():
+    data = request.json
+
+    query = {
+        "startDate": {"$regex": data.get("startDate", "")},
+        "demandAgency": {"$in": data.get("demandAgency", [])}
+    }
+
+    result = list(BIDDING_ANNOUNCEMENT.find(query, {"_id": 0}))  # "_id" 필드는 반환하지 않음
+
+    return jsonify(result)
+
+
+
+@app.route('/api/DICTIONARY_STANDARD', methods=['GET'])
 #GFC 기관
 def prest_call2():
-
-
 
     # MongoDB 쿼리 생성
 
@@ -50,7 +65,7 @@ def prest_call2():
     }
 
     # MongoDB에서 쿼리 실행
-    result = list(collection2.find(query, {"_id": 0, "no": 0, "link2": 0}))  # "_id" 필드는 반환하지 않음
+    result = list(DICTIONARY_STANDARD.find(query, {"_id": 0, "no": 0, "link2": 0}))  # "_id" 필드는 반환하지 않음
 
     return jsonify(result)
 

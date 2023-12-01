@@ -25,7 +25,7 @@ previous_data = []
 
 
 # 공고 정보 스크래핑 함수
-def scrape_bid_info():
+def scrape_bid_info_page(page_num):
     today = date.today()
 
     # 공고 게시 시작일
@@ -37,16 +37,17 @@ def scrape_bid_info():
 
     url = "https://www.g2b.go.kr:8081/ep/preparation/prestd/preStdPublishList.do?taskClCd=5&orderbyItem=1&searchType" \
           "=1&supplierLoginYn=N&instCl=2&instNm=&dminstCd=&taskClCds=5&prodNm=&swbizTgYn=&searchDetailPrdnmNo" \
-          "=&searchDetailPrdnm=&fromRcptDt={}&toRcptDt={}&recordCountPerPage=100&currentPageNo=1".format(
+          "=&searchDetailPrdnm=&fromRcptDt={}&toRcptDt={}&recordCountPerPage=100&currentPageNo={}".format(
         parse.quote(fromRcptDt, encoding='cp949'),
-        parse.quote(toRcptDt, encoding='cp949')
+        parse.quote(toRcptDt, encoding='cp949'),
+        page_num
     )  # 크롤링할 웹사이트 URL을 입력
 
     page_contents = get_page_contents(url)
     if page_contents:
         soup = extract_data_from_page(page_contents)
         send_data = parse_bid_data(soup)
-        print(url)
+        #print(url)
         return send_data
     else:
         return None
@@ -128,21 +129,23 @@ def parse_bid_data(soup):
 def periodic_task():
     global previous_data  # 전역 변수로 이전 데이터 리스트를 사용
 
-    print("Scheduled task started")
+    #print("Scheduled task started")
 
     # 스크래핑 및 데이터 추가
-    scraped_data = scrape_bid_info()
+    all_data = []
+    for page_num in range(1, 20):  # 페이지 번호를 1부터 5까지 반복
+        scraped_data = scrape_bid_info_page(page_num)
+        if scraped_data:
+            all_data.extend(scraped_data)  # 각 페이지의 데이터를 모두 누적
 
-    if scraped_data:
-        print("API 호출 성공")
+    if all_data:  # 수정된 부분: all_data를 확인
+        #print("API 호출 성공")
         new_data = []  # 새로운 데이터를 저장할 리스트
 
         # 스크래핑한 데이터를 MongoDB에 추가
-        for data in scraped_data:
+        for data in all_data:  # 수정된 부분: scraped_data 대신 all_data를 사용
             # 중복 데이터 여부를 확인하기 위해 조건을 설정합니다.
             condition = {
-                # "data1": data["data1"],  # 중복을 확인할 필드 1
-                # "data2": data["data2"],  # 중복을 확인할 필드 2
                 "referenceNumber": data["referenceNumber"],
                 "productName": data["productName"]
                 # 필요한 다른 중복 확인 필드들을 추가할 수 있습니다.
@@ -163,17 +166,18 @@ def periodic_task():
             print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
 
         # 이전 데이터를 현재 스크래핑 결과로 업데이트
-        previous_data = scraped_data
+        previous_data = all_data  # 수정된 부분: previous_data를 all_data로 업데이트
 
         print("데이터 추가 완료")
     else:
         print("API 호출 실패")
 
-    print("Scheduled task completed")
+    #print("Scheduled task completed")
 
 
 # 스케줄링을 설정합니다. 10초마다 함수를 실행하도록 설정합니다.
 schedule.every(2).seconds.do(periodic_task)
+#schedule.every().hour.do(periodic_task)
 
 
 # 스케줄링 작업을 백그라운드에서 실행합니다.

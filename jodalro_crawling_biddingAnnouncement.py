@@ -28,7 +28,7 @@ previous_data = []
 
 
 # 공고 정보 스크래핑 함수
-def scrape_bid_info():
+def scrape_bid_info_page(page_num):
     today = date.today()
 
     # 공고 게시 시작일
@@ -39,19 +39,20 @@ def scrape_bid_info():
     to_bid_dt = today.strftime("%Y/%m/%d")
     # to_bid_dt = (today - timedelta(days=1)).strftime("%Y/%m/%d")
 
-    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=&bidNm=&searchDtType" \
+    url = "https://www.g2b.go.kr:8101/ep/tbid/tbidList.do?searchType=1&bidSearchType=1&taskClCds=5&bidNm=&searchDtType" \
           "=1&fromBidDt={}&toBidDt={}&fromOpenBidDt=&toOpenBidDt=&radOrgan=2&instNm=&instSearchRangeType=&refNo=&area" \
           "=&areaNm=&strArea=&orgArea=&industry=&industryCd=&upBudget=&downBudget=&budgetCompare=&detailPrdnmNo" \
-          "=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100&currentPageNo=1".format(
+          "=&detailPrdnm=&procmntReqNo=&intbidYn=&regYn=Y&recordCountPerPage=100&currentPageNo={}".format(
         parse.quote(from_bid_dt, encoding='cp949'),
-        parse.quote(to_bid_dt, encoding='cp949')
+        parse.quote(to_bid_dt, encoding='cp949'),
+        page_num
     )  # 크롤링할 웹사이트 URL을 입력
 
     page_contents = get_page_contents(url)
     if page_contents:
         soup = extract_data_from_page(page_contents)
         send_data = parse_bid_data(soup)
-        print(url)
+        #print(url)
         return send_data
     else:
         return None
@@ -131,61 +132,55 @@ def extract_dates(date_string):
 
         return start_date, end_date
 
-    # Return None if the format doesn't match
-    return None, None
+    # If the format doesn't match, return the original data for both start and end dates
+    date_string = date_string.replace('/', '-')
+    return date_string, "-"
 
 
-# 주기적으로 호출할 함수를 정의합니다.
 def periodic_task():
     global previous_data  # 전역 변수로 이전 데이터 리스트를 사용
 
-    print("Scheduled task started")
+    #print("Scheduled task started")
 
     # 스크래핑 및 데이터 추가
-    scraped_data = scrape_bid_info()
+    all_data = []
+    for page_num in range(1, 30):  # 페이지 번호를 1부터 5까지 반복
+        scraped_data = scrape_bid_info_page(page_num)
+        if scraped_data:
+            all_data.extend(scraped_data)  # 각 페이지의 데이터를 모두 누적
 
-    if scraped_data:
-        print("API 호출 성공")
-        new_data = []  # 새로운 데이터를 저장할 리스트
+    if all_data:  # 모든 데이터를 MongoDB에 추가
+        #print("API 호출 성공")
+        new_data = []
 
-        # 스크래핑한 데이터를 MongoDB에 추가
-        for data in scraped_data:
-            # 중복 데이터 여부를 확인하기 위해 조건을 설정합니다.
+        for data in all_data:
             condition = {
-                # "data1": data["data1"],  # 중복을 확인할 필드 1
-                # "data2": data["data2"],  # 중복을 확인할 필드 2
                 "work": data["work"],
                 "announcementNumber": data["announcementNumber"]
-                # 필요한 다른 중복 확인 필드들을 추가할 수 있습니다.
             }
             existing_data = collection.find_one(condition)
 
             if not existing_data:
-                # ObjectId를 문자열로 변환하여 추가
-                data["_id"] = str(ObjectId())  # ObjectId를 문자열로 변환
+                data["_id"] = str(ObjectId())
                 collection.insert_one(data)
                 print("데이터 추가:", data)
-                new_data.append(data)  # 새로 추가된 데이터를 저장
+                new_data.append(data)
 
-        # 새로 추가된 데이터만 로그로 출력
         if new_data:
-            # ObjectId 필드를 제거하고 JSON으로 직렬화
             new_data_json = [item for item in new_data if "_id" not in item]
             # print("새로 추가된 데이터:", json.dumps(new_data_json, indent=4))
 
-        # 이전 데이터를 현재 스크래핑 결과로 업데이트
-        previous_data = scraped_data
-
+        previous_data = all_data  # 이전 데이터를 모든 데이터로 업데이트
         print("데이터 추가 완료")
     else:
         print("API 호출 실패")
 
-    print("Scheduled task completed")
+    #print("Scheduled task completed")
 
 
 # 스케줄링을 설정합니다. 10초마다 함수를 실행하도록 설정합니다.
 schedule.every(2).seconds.do(periodic_task)
-
+#schedule.every().hour.do(periodic_task)
 
 # 스케줄링 작업을 백그라운드에서 실행합니다.
 def schedule_loop():
