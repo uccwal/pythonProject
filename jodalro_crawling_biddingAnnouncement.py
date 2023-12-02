@@ -81,26 +81,17 @@ def parse_bid_data(soup):
     tr_tags = tbody_tag.find_all('tr')
 
     send_data = []
-    link_list = {}
-
-    key_list = ["link1", "link2", "link3", "link4"]
-    for i, links in enumerate(tr_tags):
-        a_tags = links.find_all('a')
-        for j, a in enumerate(a_tags):
-            if j < len(key_list):
-                key = key_list[j]
-                value = a.get('href')
-                link_list[key] = value
 
     for tr_tag in tr_tags:
         first_td = tr_tag.find_all('td')
 
         if first_td:
             data_json = {}
+
+            link_list = {}  # 각 공고마다 새로운 link_list를 생성
+
             for i, element in enumerate(first_td):
                 text = element.find('div').text
-                # keys = ["data1", "data2", "data3", "data4", "data5", "data6", "data7", "data8", "data9",
-                #       "data10", "data11", "data12"]
                 keys = ["work", "announcementNumber", "classification", "announcementName", "announcementAgency",
                         "demandAgency", "contractMethod", "dateOfEntry", "data9",
                         "data10", "data11", "data12"]
@@ -114,7 +105,16 @@ def parse_bid_data(soup):
                     else:
                         data_json[keys[i]] = text
 
+            # 각 링크를 link_list에 저장
+            a_tags = tr_tag.find_all('a')
+            for j, a in enumerate(a_tags):
+                key = f"link{j + 1}"
+                value = a.get('href')
+                link_list[key] = value
+
+            # link_list를 data_json에 추가
             data_json.update(link_list)
+
             send_data.append(data_json)
 
     return send_data
