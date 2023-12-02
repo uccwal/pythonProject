@@ -75,22 +75,14 @@ def parse_bid_data(soup):
     tbody_tag = results_div.find('tbody')
     tr_tags = tbody_tag.find_all('tr')
     send_data = []
-    link_list = {}
 
     key_list = ["link1", "link2", "link3", "link4"]
-    # for i, links in enumerate(tr_tags):
-    #     a_tags = links.find_all('a')
-    #     for j, a in enumerate(a_tags):
-    #         if j < len(key_list):
-    #             key = key_list[j]
-    #             #value = a.get('href')
-    #             value = a.text
-    #             link_list[key] = value
-
     base_url = "https://www.g2b.go.kr:8082/ep/preparation/prestd/preStdDtl.do?preStdRegNo="
 
-    for i, links in enumerate(tr_tags):
-        a_tags = links.find_all('a')
+    for tr_tag in tr_tags:
+        a_tags = tr_tag.find_all('a')
+        link_list = {}  # 각 항목에 대한 새로운 link_list 생성
+
         for j, a in enumerate(a_tags):
             if j < len(key_list):
                 key = key_list[j]
@@ -98,7 +90,6 @@ def parse_bid_data(soup):
                 full_url = base_url + value  # URL 연결
                 link_list[key] = full_url
 
-    for tr_tag in tr_tags:
         first_td = tr_tag.find_all('td')
 
         if first_td:
@@ -110,10 +101,8 @@ def parse_bid_data(soup):
 
                 if i < len(keys):
                     if keys[i] in ["productName", "demandAgency"]:
-                        # productName 및 demandAgency 텍스트 정리 (공백 및 개행문자 제거)
                         text = ' '.join(text.split()).strip()
                     elif keys[i] == "dateAndTime":
-                        # 날짜 데이터 형식 변경 (2023/11/28 16:22 -> 2023-11-28 16:22)
                         date_time_obj = datetime.strptime(text, "%Y/%m/%d %H:%M")
                         text = date_time_obj.strftime("%Y-%m-%d %H:%M")
 
@@ -123,7 +112,6 @@ def parse_bid_data(soup):
             send_data.append(data_json)
 
     return send_data
-
 
 # 주기적으로 호출할 함수를 정의합니다.
 def periodic_task():
