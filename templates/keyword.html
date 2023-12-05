@@ -1,0 +1,206 @@
+{% extends "layout/layout.html" %}
+{% block title %}jodalro prototype{% endblock %}
+{% block head %}
+
+{% endblock %}
+{% block content %}
+    <script type="text/javascript">
+
+        $(function () {
+
+            //Define variables for input elements
+            var fieldEl = document.getElementById("filter-field");
+            var typeEl = document.getElementById("filter-type");
+            var valueEl = document.getElementById("filter-value");
+
+            //Custom filter example
+            function customFilter(data) {
+                return data.car && data.rating < 3;
+            }
+
+            //Trigger setFilter function with correct parameters
+            function updateFilter() {
+                var filterVal = fieldEl.options[fieldEl.selectedIndex].value;
+                var typeVal = typeEl.options[typeEl.selectedIndex].value;
+                var filter = filterVal == "function" ? customFilter : filterVal;
+
+                if (filterVal == "function") {
+                    typeEl.disabled = true;
+                    valueEl.disabled = true;
+                } else {
+                    typeEl.disabled = false;
+                    valueEl.disabled = false;
+                }
+
+                if (filterVal) {
+                    table.setFilter(filter, typeVal, valueEl.value);
+                }
+            }
+
+            //Update filters on value change
+            document.getElementById("filter-field").addEventListener("change", updateFilter);
+            document.getElementById("filter-type").addEventListener("change", updateFilter);
+            document.getElementById("filter-value").addEventListener("keyup", updateFilter);
+
+            //Clear filters on "Clear Filters" button click
+            document.getElementById("filter-clear").addEventListener("click", function () {
+                fieldEl.value = "";
+                typeEl.value = "=";
+                valueEl.value = "";
+
+                table.clearFilter();
+            });
+
+
+            var table = new Tabulator("#dic", {
+                ajaxURL: "/api/MY_KEYWORD",
+                ajaxConfig: {
+                    method: "GET",
+                },
+                ajaxContentType: "json",
+                height: 700,
+                placeholder: "데이터가 존재하지 않습니다.",
+                /*ajaxParams: function (url, config, params) {
+                    // 필요한 경우 Ajax 요청에 파라미터를 추가할 수 있습니다.
+                    return {
+                        startDate: $("#startDate").val(),
+                        endDate: $("#endDate").val()
+                    };
+                },*/
+                pagination: "local",
+                paginationSize: 50,
+                paginationSizeSelector: [10, 20, 50, 100],
+                movableColumns: true,
+                groupBy: "field",
+                paginationCounter: "rows",
+                columns: [
+                    {
+                        formatter: "rowSelection",
+                        titleFormatter: "rowSelection",
+                        hozAlign: "center",
+                        headerSort: false,
+                        cellClick: function (e, cell) {
+                            cell.getRow().toggleSelect();
+                        }
+                    },
+                    {title: "No", formatter: "rownum", align: "center", width: 40},
+                    {title: "분류", field: "field", sorter: "string"},
+                    {title: "키워드", field: "key", sorter: "string"},
+
+
+                ]
+            });
+
+            $("#deleteButton").on("click", function () {
+                // 선택된 행의 데이터를 가져옴
+                var selectedData = table.getSelectedData();
+                console.log(selectedData);
+                $.ajax({
+                    type: "POST",
+                    url: "/api/MY_KEYWORD_REMOVE",
+                    contentType: "application/json",
+                    data: JSON.stringify(selectedData.map(item => ({
+                        ...item,
+                        field: (item.field === "수요기관") ? "demandAgency" :
+                            (item.field === "공고명") ? "announcementName" : item.field
+                    }))),
+                    success: function (response) {
+                        console.log("서버 응답:", response);
+                        // 여기서 필요한 UI 업데이트 등을 수행할 수 있음
+                        location.reload();
+                    },
+                    error: function (error) {
+                        console.error("에러 발생:", error);
+                    }
+                });
+
+
+            });
+
+            $("#successButton").click(function () {
+                var category = $("#selectCategory").val();
+                var keyword = $("#keyword").val();
+                var data = [];
+                if (category !== "분류" && keyword.trim() !== "") {
+                    // Add data to array
+                    data.push({field: category, key: keyword});
+                    console.log(data);
+                    $.ajax({
+                        type: "POST",
+                        url: "/api/ADD_KEYWORD",  // Replace with your actual API endpoint
+                        contentType: "application/json",
+                        data: JSON.stringify(data),
+                        success: function (response) {
+                            console.log("Server Response:", response);
+                            // You can update UI or perform other actions based on the server response
+                            location.reload();
+                        },
+                        error: function (error) {
+                            console.error("Error Occurred:", error);
+                        }
+                    });
+                } else {
+                    alert("분류와 키워드를 선택 또는 입력하세요.");
+                }
+
+            });
+
+        });
+    </script>
+
+    <div class="container-fluid" style="margin: 20px 0">
+
+
+        <div class="align-items-start row">
+            <div class="col-sm-2">
+                <select id="filter-field" class="form-select col">
+                    <option value="key">키워드</option>
+                    <option value="field">분류</option>
+
+
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <select id="filter-type" class="form-select col">
+                    <option value="like">like</option>
+                    <option value="=">=</option>
+                    <option value="<"><</option>
+                    <option value="<="><=</option>
+                    <option value=">">></option>
+                    <option value=">=">>=</option>
+                    <option value="!=">!=</option>
+
+                </select>
+            </div>
+            <div class="col-sm-2">
+
+                <input id="filter-value" type="text" placeholder="value to filter" class="form-control col">
+            </div>
+            <div class="col-sm-2">
+                <button id="filter-clear" class="btn btn-danger col">Clear Filter</button>
+            </div>
+
+
+        </div>
+
+
+        <div class="align-items-start row" style="margin-top: 20px">
+            <div class="col-sm-2">
+                <select id="selectCategory" class="form-select">
+                    <option selected>분류</option>
+                    <option value="announcementName">공고명</option>
+                    <option value="demandAgency">수요기관</option>
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <input id="keyword" type="text" placeholder="키워드" class="form-control col">
+            </div>
+            <div class="col-sm-2">
+                <button id="successButton" class="btn btn-success col">success</button>
+                <button id="deleteButton" class="btn btn-danger col">delete</button>
+            </div>
+
+        </div>
+    </div>
+    <div id="dic"></div>
+{% endblock %}

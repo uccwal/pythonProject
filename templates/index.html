@@ -1,0 +1,465 @@
+{% extends "layout/layout.html" %}
+{% block title %}jodalro prototype{% endblock %}
+{% block head %}
+
+{% endblock %}
+{% block content %}
+    <script type="text/javascript">
+
+        $(function () {
+
+            var table;
+            var demandAgencyKey = [];
+            var announcementNameKey = [];
+
+            var currentDate = new Date();
+
+            var year = currentDate.getFullYear();
+            var month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+            var day = currentDate.getDate().toString().padStart(2, '0');
+
+            var formattedDate = `${year}${month}${day}`;
+            console.log(formattedDate);
+
+            var fileName;
+
+
+            $.ajax({
+                url: '/api/MY_KEYWORD',
+                method: 'GET',
+                dataType: 'json',
+                layout: "fitColumns",
+                success: function (data) {
+
+                    var filteredDataDemandAgency = data.filter(function (item) {
+                        return item.field === "수요기관" && item.id === "gfc";
+                    });
+                    var filteredDataAnnouncementName = data.filter(function (item) {
+                        return item.field === "공고명" && item.id === "gfc";
+                    });
+                    filteredDataDemandAgency.forEach(function (item) {
+                        demandAgencyKey.push(item.key);
+                    });
+                    filteredDataAnnouncementName.forEach(function (item) {
+                        announcementNameKey.push(item.key);
+                    });
+
+                    /*console.log(demandAgencyKey);
+                    console.log(announcementNameKey);
+                    console.log(data)*/
+                },
+
+                error: function (xhr, status, error) {
+                    // 에러 처리
+                    console.error('AJAX 요청 실패:', status, error);
+                }
+            });
+
+            //Define variables for input elements
+            var fieldEl = document.getElementById("filter-field");
+            var typeEl = document.getElementById("filter-type");
+            var valueEl = document.getElementById("filter-value");
+
+            //Custom filter example
+            function customFilter(data) {
+                return data.car && data.rating < 3;
+            }
+
+            //Trigger setFilter function with correct parameters
+            function updateFilter() {
+                var filterVal = fieldEl.options[fieldEl.selectedIndex].value;
+                var typeVal = typeEl.options[typeEl.selectedIndex].value;
+                var filter = filterVal == "function" ? customFilter : filterVal;
+
+                if (filterVal == "function") {
+                    typeEl.disabled = true;
+                    valueEl.disabled = true;
+                } else {
+                    typeEl.disabled = false;
+                    valueEl.disabled = false;
+                }
+
+                if (filterVal) {
+                    table.setFilter(filter, typeVal, valueEl.value);
+                }
+            }
+
+            //Update filters on value change
+            document.getElementById("filter-field").addEventListener("change", updateFilter);
+            document.getElementById("filter-type").addEventListener("change", updateFilter);
+            document.getElementById("filter-value").addEventListener("keyup", updateFilter);
+
+            //Clear filters on "Clear Filters" button click
+            document.getElementById("filter-clear").addEventListener("click", function () {
+                fieldEl.value = "";
+                typeEl.value = "=";
+                valueEl.value = "";
+
+                table.clearFilter();
+            });
+
+
+            document.getElementById("download-xlsx").addEventListener("click", function () {
+                table.download("xlsx", formattedDate + "_" + fileName + ".xlsx", {sheetName: fileName});
+            });
+
+
+            $(".btn-total").on('click', function () {
+                fileName = '입찰공고';
+
+
+                table = new Tabulator("#dic", {
+                    ajaxURL: "/api/BIDDING_ANNOUNCEMENT",
+                    ajaxConfig: {
+                        method: "POST",
+                    },
+                    ajaxContentType: "json",
+                    height: 700,
+                    placeholder: "데이터가 존재하지 않습니다.",
+                    ajaxParams: function (url, config, params) {
+                        // 필요한 경우 Ajax 요청에 파라미터를 추가할 수 있습니다.
+                        return {
+                            startDate: $("#startDate").val(),
+                            endDate: $("#endDate").val()
+                        };
+                    },
+                    pagination: "local",
+                    paginationSize: 50,
+                    paginationSizeSelector: [10, 20, 50, 100],
+                    movableColumns: true,
+                    paginationCounter: "rows",
+                    columns: [
+                        {title: "업무", field: "work", sorter: "string", width: 100},
+                        {
+                            title: "공고번호", field: "announcementNumber", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+
+                        {title: "수요기관", field: "demandAgency", sorter: "string"},
+                        {title: "공고명", field: "announcementName", sorter: "string"},
+                        {title: "입찰마감일시", field: "endDate", sorter: "string"},
+                        {title: "입력일시", field: "startDate", sorter: "string"},
+                        {title: "공고기관", field: "announcementAgency", sorter: "string", width: 200},
+
+                        {title: "분류", field: "classification", sorter: "string", width: 70},
+                        {title: "계약방법", field: "contractMethod", sorter: "string"},
+                        {title: "투찰", field: "data10", sorter: "string"},
+                        {title: "data9", field: "data9", sorter: "string", visible: false},
+                        {
+                            title: "link1", field: "link1", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "link2", field: "link2", sorter: "string", visible: false},
+
+                    ]
+                });
+            });
+
+
+            $(".btn-mykeyword").on('click', function () {
+                fileName = '입찰공고_키워드';
+
+
+                table = new Tabulator("#dic", {
+                    ajaxURL: "/api/BIDDING_ANNOUNCEMENT_KEY",
+                    ajaxConfig: {
+                        method: "POST",
+                    },
+                    height: 700,
+                    ajaxContentType: "json",
+                    pagination: "local",
+                    paginationSize: 50,
+                    paginationSizeSelector: [10, 20, 50, 100],
+                    movableColumns: true,
+
+                    paginationCounter: "rows",
+                    ajaxParams: function (url, config, params) {
+                        // 필요한 경우 Ajax 요청에 파라미터를 추가할 수 있습니다.
+                        return {
+                            demandAgency: demandAgencyKey,
+                            announcementName: announcementNameKey,
+                            startDate: $("#startDate").val(),
+                            endDate: $("#endDate").val()
+                        };
+                    },
+                    //layout: "fitDataTable",
+                    placeholder: "데이터가 존재하지 않습니다.",
+                    columns: [
+                        {title: "업무", field: "work", sorter: "string", width: 100},
+                        {
+                            title: "공고번호", field: "announcementNumber", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+
+                        {title: "수요기관", field: "demandAgency", sorter: "string"},
+                        {title: "공고명", field: "announcementName", sorter: "string"},
+                        {title: "입찰마감일시", field: "endDate", sorter: "string"},
+                        {title: "입력일시", field: "startDate", sorter: "string"},
+                        {title: "공고기관", field: "announcementAgency", sorter: "string", width: 200},
+
+                        {title: "분류", field: "classification", sorter: "string", width: 70},
+                        {title: "계약방법", field: "contractMethod", sorter: "string"},
+                        {title: "투찰", field: "data10", sorter: "string"},
+                        {title: "data9", field: "data9", sorter: "string", visible: false},
+                        {
+                            title: "link1", field: "link1", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "link2", field: "link2", sorter: "string", visible: false},
+
+                    ]
+                });
+
+
+            });
+            /* ********************************************************************************************* */
+
+            $(".btn-total-standard").on('click', function () {
+                fileName = '사전규격';
+
+
+                table = new Tabulator("#dic", {
+                    ajaxURL: "/api/DICTIONARY_STANDARD",
+                    ajaxConfig: {
+                        method: "POST",
+                    },
+                    ajaxContentType: "json",
+                    height: 700,
+                    placeholder: "데이터가 존재하지 않습니다.",
+                    ajaxParams: function (url, config, params) {
+                        // 필요한 경우 Ajax 요청에 파라미터를 추가할 수 있습니다.
+                        return {
+                            startDate: $("#startDate").val(),
+                            endDate: $("#endDate").val()
+                        };
+                    },
+                    pagination: "local",
+                    paginationSize: 50,
+                    paginationSizeSelector: [10, 20, 50, 100],
+                    movableColumns: true,
+                    paginationCounter: "rows",
+                    columns: [
+                        {title: "No", formatter: "rownum", align: "center", width: 40},
+                        {
+                            title: "등록", field: "registrationNumber", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "참조번호", field: "referenceNumber", sorter: "string", width: 200},
+                        {title: "사업명", field: "announcementName", sorter: "string"},
+                        {title: "수요기관", field: "demandAgency", sorter: "string"},
+                        {title: "업체등록의견수", field: "companyRegistration", sorter: "string"},
+                        {title: "사전규격공개일시", field: "dateAndTime", sorter: "string"},
+
+                        {title: "data9", field: "data9", sorter: "string", visible: false},
+                        {
+                            title: "link1", field: "link1", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "link2", field: "link2", sorter: "string", visible: false},
+
+                    ]
+                });
+            });
+
+
+            $(".btn-mykeyword-standard").on('click', function () {
+                fileName = '사전규격_키워드';
+
+                table = new Tabulator("#dic", {
+                    ajaxURL: "/api/DICTIONARY_STANDARD_KEY",
+                    ajaxConfig: {
+                        method: "POST",
+                    },
+                    height: 700,
+                    ajaxContentType: "json",
+                    pagination: "local",
+                    paginationSize: 50,
+                    paginationSizeSelector: [10, 20, 50, 100],
+                    movableColumns: true,
+
+                    paginationCounter: "rows",
+                    ajaxParams: function (url, config, params) {
+                        // 필요한 경우 Ajax 요청에 파라미터를 추가할 수 있습니다.
+                        return {
+                            demandAgency: demandAgencyKey,
+                            announcementName: announcementNameKey,
+                            startDate: $("#startDate").val(),
+                            endDate: $("#endDate").val()
+                        };
+                    },
+                    //layout: "fitDataTable",
+                    placeholder: "데이터가 존재하지 않습니다.",
+                    columns: [
+                        {title: "No", formatter: "rownum", align: "center", width: 40},
+                        {
+                            title: "등록", field: "registrationNumber", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "참조번호", field: "referenceNumber", sorter: "string", width: 200},
+                        {title: "사업명", field: "announcementName", sorter: "string"},
+                        {title: "수요기관", field: "demandAgency", sorter: "string"},
+                        {title: "업체등록의견수", field: "companyRegistration", sorter: "string"},
+                        {title: "사전규격공개일시", field: "dateAndTime", sorter: "string"},
+                        {title: "data9", field: "data9", sorter: "string", visible: false},
+                        {
+                            title: "link1", field: "link1", sorter: "string",
+                            formatter: "link",
+                            formatterParams: {
+                                url: function (cell) {
+                                    // URL 생성 로직
+                                    var workValue = cell.getRow().getData().link1;
+                                    return workValue;
+                                },
+                                target: "_blank", // 새 창에서 열기
+                            },
+                        },
+                        {title: "link2", field: "link2", sorter: "string", visible: false},
+
+                    ]
+                });
+
+
+            });
+
+
+            function getCurrentDate() {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = (today.getMonth() + 1).toString().padStart(2, '0'); // 월은 0부터 시작하므로 1을 더하고 두 자리로 패딩
+                const day = today.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            function getYesterdayDate() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const year = yesterday.getFullYear();
+                const month = (yesterday.getMonth() + 1).toString().padStart(2, '0');
+                const day = yesterday.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            document.getElementById('startDate').value = getYesterdayDate();
+            document.getElementById('endDate').value = getCurrentDate();
+
+
+        });
+    </script>
+    <div class="container-fluid">
+
+
+        <div class="align-items-start row">
+            <button class="btn btn-primary btn-mykeyword col" style="margin-right:3px">입찰공고 키워드로 보기</button>
+
+            <button class="btn btn-secondary btn-total col" style="margin-right:3px">입찰공고 모두보기</button>
+
+            <button class="btn btn-primary btn-mykeyword-standard col" style="margin-right:3px">사전규격 키워드로 보기</button>
+
+            <button class="btn btn-secondary btn-total-standard col" style="margin-right:3px">사전규격 모두보기</button>
+
+
+            <div class="col-sm-2">
+                <input type="date" id="startDate" class="form-control col">
+            </div>
+            <div class="col-sm-2">
+                <input type="date" id="endDate" class="form-control col">
+            </div>
+
+        </div>
+
+
+    </div>
+    <div class="container-fluid" style="margin: 20px 0">
+
+        <div class="align-items-start row">
+            <div class="col-sm-2" style="padding-left:0">
+                <select id="filter-field" class="form-select col">
+                    <option value="announcementName">공고명</option>
+                    <option value="announcementNumber">공고번호</option>
+                    <option value="announcementAgency">공고기관</option>
+                    <option value="demandAgency">수요기관</option>
+
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <select id="filter-type" class="form-select col">
+                    <option value="like">like</option>
+                    <option value="=">=</option>
+                    <option value="<"><</option>
+                    <option value="<="><=</option>
+                    <option value=">">></option>
+                    <option value=">=">>=</option>
+                    <option value="!=">!=</option>
+
+                </select>
+            </div>
+            <div class="col-sm-2">
+
+                <input id="filter-value" type="text" placeholder="value to filter" class="form-control col">
+            </div>
+            <div class="col-sm-2">
+                <button id="filter-clear" class="btn btn-danger col">Clear Filter</button>
+            </div>
+            <div class="col-sm-2">
+                <button id="download-xlsx" class="btn btn-success col">Download XLSX</button>
+            </div>
+        </div>
+    </div>
+    <div id="dic"></div>
+{% endblock %}

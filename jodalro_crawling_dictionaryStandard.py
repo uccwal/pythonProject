@@ -96,11 +96,11 @@ def parse_bid_data(soup):
             data_json = {}
             for i, element in enumerate(first_td):
                 text = element.find('div').text
-                keys = ["no", "registrationNumber", "referenceNumber", "productName", "demandAgency", "dateAndTime",
+                keys = ["no", "registrationNumber", "referenceNumber", "announcementName", "demandAgency", "dateAndTime",
                         "companyRegistration"]
 
                 if i < len(keys):
-                    if keys[i] in ["productName", "demandAgency"]:
+                    if keys[i] in ["announcementName", "demandAgency"]:
                         text = ' '.join(text.split()).strip()
                     elif keys[i] == "dateAndTime":
                         date_time_obj = datetime.strptime(text, "%Y/%m/%d %H:%M")
@@ -135,7 +135,7 @@ def periodic_task():
             # 중복 데이터 여부를 확인하기 위해 조건을 설정합니다.
             condition = {
                 "referenceNumber": data["referenceNumber"],
-                "productName": data["productName"]
+                "announcementName": data["announcementName"]
                 # 필요한 다른 중복 확인 필드들을 추가할 수 있습니다.
             }
             existing_data = collection.find_one(condition)

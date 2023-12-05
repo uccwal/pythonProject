@@ -25,8 +25,6 @@ hardcoded_agencies = ["한국사회보장정보원", "대검찰청", "한국출�
 #GFC 기관
 def prest_call():
 
-
-
     # MongoDB 쿼리 생성
     query = {
         #"startDate": {"$regex": yesterday_str},
@@ -43,8 +41,9 @@ def v1():
     data = request.json
 
     query = {
-        "startDate": {"$regex": data.get("startDate", "")},
-        "demandAgency": {"$in": data.get("demandAgency", [])}
+
+        #"startDate": {"$regex": data.get("startDate", "")},
+        "demandAgency": {"$regex": data.get("demandAgency", [])}
     }
 
     result = list(BIDDING_ANNOUNCEMENT.find(query, {"_id": 0}))  # "_id" 필드는 반환하지 않음

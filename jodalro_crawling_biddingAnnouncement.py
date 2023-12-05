@@ -52,7 +52,7 @@ def scrape_bid_info_page(page_num):
     if page_contents:
         soup = extract_data_from_page(page_contents)
         send_data = parse_bid_data(soup)
-        #print(url)
+        print(url)
         return send_data
     else:
         return None
@@ -144,7 +144,7 @@ def periodic_task():
 
     # 스크래핑 및 데이터 추가
     all_data = []
-    for page_num in range(1, 30):  # 페이지 번호를 1부터 5까지 반복
+    for page_num in range(20, 30):  # 페이지 번호를 1부터 5까지 반복
         scraped_data = scrape_bid_info_page(page_num)
         if scraped_data:
             all_data.extend(scraped_data)  # 각 페이지의 데이터를 모두 누적
