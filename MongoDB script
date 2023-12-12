@@ -98,3 +98,195 @@ use mydb;
 db.testdata.find({"announcementAgency": /안동|인천/}).pretty();
 
 
+db.createCollection("testdata");
+db.createCollection("testdata2");
+db.createCollection("KEYWORD");
+db.createCollection("BIDDING_ANNOUNCEMENT");
+db.createCollection("DICTIONARY_STANDARD");
+db.Keyword.createIndex({ field: 1, key: 1 }, { unique: true });
+db.BIDDING_ANNOUNCEMENT.createIndex({ work: 1, announcementNumber : 1 }, { unique: true });
+db.DICTIONARY_STANDARD.createIndex({ registrationNumber: 1, announcementName : 1 }, { unique: true });
+db.KEYWORD.insertMany([
+    {id: "gfc", field: "demandAgency", key: "한국사회보장정보원"},
+    {id: "gfc", field: "demandAgency", key: "한국출판문화산업진흥원"},
+    {id: "gfc", field: "demandAgency", key: "한국환경산업기술원"},
+    {id: "gfc", field: "demandAgency", key: "정보통신산업진흥원"},
+    {id: "gfc", field: "demandAgency", key: "인사혁신처"},
+    {id: "gfc", field: "demandAgency", key: "소상공인시장진흥공단"},
+    {id: "gfc", field: "demandAgency", key: "공정거래위원회"},
+    {id: "gfc", field: "demandAgency", key: "한국공정거래조정원"},
+    {id: "gfc", field: "demandAgency", key: "한국여성인권진흥원"},
+    {id: "gfc", field: "demandAgency", key: "한국국토정보공사"},
+    {id: "gfc", field: "demandAgency", key: "인천공항공사"},
+    {id: "gfc", field: "demandAgency", key: "산림청"},
+    {id: "gfc", field: "demandAgency", key: "산림교육원"},
+    {id: "gfc", field: "demandAgency", key: "문화재청"},
+    {id: "gfc", field: "demandAgency", key: "문화체육관광부"},
+    {id: "gfc", field: "demandAgency", key: "SBA"},
+    {id: "gfc", field: "demandAgency", key: "서울산업진흥원"},
+    {id: "gfc", field: "demandAgency", key: "축산물품질평가원"},
+    {id: "gfc", field: "demandAgency", key: "질병관리본부"},
+    {id: "gfc", field: "demandAgency", key: "기초과학연구원"},
+    {id: "gfc", field: "demandAgency", key: "연구개발특구진흥재단"},
+    {id: "gfc", field: "demandAgency", key: "서울신용보증재단"},
+    {id: "gfc", field: "demandAgency", key: "방송통신위원회"},
+    {id: "gfc", field: "demandAgency", key: "한국관광공사"},
+    {id: "gfc", field: "demandAgency", key: "법무부"},
+    {id: "gfc", field: "demandAgency", key: "여성가족부"},
+    {id: "gfc", field: "demandAgency", key: "금융위원회"},
+    {id: "gfc", field: "demandAgency", key: "외교부"},
+    {id: "gfc", field: "demandAgency", key: "국회사무처"},
+    {id: "gfc", field: "demandAgency", key: "환경산업기술원"},
+    {id: "gfc", field: "demandAgency", key: "대검찰청"},
+    {id: "gfc", field: "demandAgency", key: "국방정보본부"},
+    {id: "gfc", field: "demandAgency", key: "태권도진흥재단"},
+    {id: "gfc", field: "demandAgency", key: "보건복지부"},
+    {id: "gfc", field: "demandAgency", key: "인천국제공항공사"},
+    {id: "gfc", field: "demandAgency", key: "국방"},
+    {id: "gfc", field: "demandAgency", key: "국방부"},
+    {id: "gfc", field: "demandAgency", key: "국방부(운영지원과)"},
+]);
+db.KEYWORD.insertMany([
+    {id: "gfc", field: "demandAgency", key: "한국사회보장정보원"},
+]);
+
+db.KEYWORD.insertMany([
+    {id: "gfc", field: "announcementName", key: "유지"},
+    {id: "gfc", field: "announcementName", key: "시스템"},
+    {id: "gfc", field: "announcementName", key: "운영"},
+    {id: "gfc", field: "announcementName", key: "유지관리"},
+    {id: "gfc", field: "announcementName", key: "유지보수"},
+    {id: "gfc", field: "announcementName", key: "고도화"},
+    {id: "gfc", field: "announcementName", key: "플랫폼"},
+    {id: "gfc", field: "announcementName", key: "산림청"},
+    {id: "gfc", field: "announcementName", key: "솔루션"},
+    {id: "gfc", field: "announcementName", key: "챗봇"},
+]);
+db.KEYWORD.insertMany([
+    {id: "gfc", field: "announcementName", key: "챗봇"},
+]);
+db.grantRolesToUser("mydb", [{ role: "dbAdmin", db: "mydb" }]);
+
+
+use mydb;
+
+db.runCommand({ connectionStatus: 1 });
+
+use admin;
+db.auth("admin","admin");
+db.createUser({
+    user: "mongo",
+    pwd: "mongo",
+    roles: [{ role: "dbAdmin", db: "mydb" }]
+})
+use admin;
+
+db.dropUser("mongo");
+
+db.testdata2.find({
+    "dateAndTime": /2023-11-27/
+}).pretty();
+
+db.BIDDING_ANNOUNCEMENT.find({
+    "dateAndTime": /2023-11-22|2023-11-23|2023-11-21/,
+    $or: [
+        { "demandAgency": /한국국토정보공사|소상공인시장진흥공단|한국환경산업기술원|국회사무처|한국관광공사|정보통신산업진흥원|산림청/ }
+    ]
+}).pretty();
+
+// 시작일과 종료일 문자열
+var startDateString = "2023-11-21";
+var endDateString = "2023-11-27";
+
+// Date 객체로 변환
+var startDate = new Date(startDateString);
+var endDate = new Date(endDateString + "T23:59:59Z");
+
+db.BIDDING_ANNOUNCEMENT.find({
+    "startDate": {
+        $gte: "2023-12-04",
+        $lte: "2023-12-05"
+    },
+    $or: [
+        { "demandAgency": /한국사회보장정보원|대검찰청|한국출판문화산업진흥원|한국환경산업기술원|정보통신산업진흥원|인사혁신처|소상공인시장진흥공단|공정거래위원회|한국공정거래조정원|한국국토정보공사|한국여성인권진흥원|인천공항공사|산림청|산림교육원|문화재청|문화체육관광부|SBA|서울산업진흥원|축산물품질평가원|질병관리본부|기초과학연구원|연구개발특구진흥재단|서울신용보증재단|방송통신위원회|한국관광공사|법무부|여성가족부|국회사무처|국방정보본부|태권도진흥재단|보건복지부|외교부/,
+            "announcementName": /디지털|시스템|유지|보수/}
+    ]
+
+}).pretty();
+
+db.DICTIONARY_STANDARD.find({
+    "dateAndTime": {
+        $gte: "2023-11-11",
+        $lte: "2023-12-05"
+    },
+    $or: [
+        { "demandAgency": /한국사회보장정보원|한국출판문화산업진흥원|한국환경산업기술원|정보통신산업진흥원|인사혁신처|소상공인시장진흥공단|공정거래위원회|한국공정거래조정원|한국여성인권진흥원|한국국토정보공사|인천공항공사|산림청|산림교육원|문화재청|문화체육관광부|SBA|서울산업진흥원|축산물품질평가원|질병관리본부|기초과학연구원|연구개발특구진흥재단|서울신용보증재단|방송통신위원회|한국관광공사|법무부|여성가족부|금융위원회|외교부|환경산업기술원|국회사무처|대검찰청|국방정보본부|태권도진흥재단|보건복지부|인천국제공항공사|국방|국방부|국방부(운영지원과)/,
+            "announcementName": /디지털|시스템|유지보수|유지관리|고도화|플랫폼|산림청|솔루션|챗봇/}
+    ]
+
+}).pretty();
+
+
+
+db.DICTIONARY_STANDARD.find({
+    "startDate": /2023-11-28|2023-11-23|2023-11-|2023-11-27/,
+    $or: [
+        { "demandAgency": /한국사회보장정보원|대검찰청|한국출판문화산업진흥원|한국환경산업기술원|정보통신산업진흥원|인사혁신처|소상공인시장진흥공단|공정거래위원회|한국공정거래조정원|한국국토정보공사|한국여성인권진흥원|인천공항공사|산림청|산림교육원|문화재청|문화체육관광부|SBA|서울산업진흥원|축산물품질평가원|질병관리본부|기초과학연구원|연구개발특구진흥재단|서울신용보증재단|방송통신위원회|한국관광공사|법무부|여성가족부|국회사무처|국방정보본부|태권도진흥재단|보건복지부|외교부/,
+            "productName": /기능개선|시스템|유지|보수/}
+    ]
+}).pretty();
+
+db.BIDDING_ANNOUNCEMENT.find({
+    $or: [
+    {"demandAgency": /한국국토정보공사|소상공인시장진흥공단|한국환경산업기술원|국회사무처|한국관광공사|정보통신산업진흥원|산림청|경기도/,
+            "announcementName": /디지털|시스템|유지|보수/}
+    ]
+}).pretty();
+
+db.BIDDING_ANNOUNCEMENT.find({
+    {"demandAgency": {$in: /한국사회보장정보원|대검찰청|한국출판문화산업진흥원|한국환경산업기술원|정보통신산업진흥원|인사혁신처|소상공인시장진흥공단|공정거래위원회|한국공정거래조정원|한국국토정보공사|한국여성인권진흥원|인천공항공사|산림청|산림교육원|문화재청|문화체육관광부|SBA|서울산업진흥원|축산물품질평가원|질병관리본부|기초과학연구원|연구개발특구진흥재단|서울신용보증재단|방송통신위원회|한국관광공사|법무부|여성가족부|국회사무처|국방정보본부|태권도진흥재단|보건복지부|외교부/},
+    "announcementName": {$in: /작은도서관/}
+}}).pertty();
+
+
+
+db.BIDDING_ANNOUNCEMENT.find({
+    '$or':[
+        {'demandAgency': {'$in': ['사단법인', '전라남도']}}, {'announcementName': {'$in': ['플랫폼']}}
+]
+}).pretty();
+
+use mydb;
+db.BIDDING_ANNOUNCEMENT.find({
+    "demandAgency": {$regex: /사단|전라|강원/}
+}).pretty();
+
+db.testdata.find({
+    $or: [
+        {
+            "demandAgency": {
+                $regex: /한국국토정보공사|소상공인시장진흥공단|한국환경산업기술원|국회사무처|한국관광공사|정보통신산업진흥원|산림청/
+            },
+            "announcementName": {
+                $regex: /건축|통근/
+            }
+        },
+        // Add more $or conditions if needed
+    ]
+}).pretty();
+
+db.testdata.find({
+    "dateAndTime": {
+        $gte: ISODate("2023-11-27T00:00:00.000Z"),
+        $lt: ISODate("2023-11-28T00:00:00.000Z")
+    }
+}).pretty();
+
+
+use mydb;
+db.testdata.find({"announcementAgency": /안동|인천/}).pretty();
+
+db.Keyword.deleteOne({ "field": "demandAgency", "key": "한국사회보장정보원" })
+
+
+

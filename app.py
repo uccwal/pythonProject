@@ -1,10 +1,15 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for, redirect
 from flask_cors import CORS
 import pymongo
 from datetime import datetime, timedelta
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 app = Flask(__name__)
 CORS(app)
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 client = pymongo.MongoClient("mongodb://root:root@localhost:27017/")
 db = client["mydb"]
@@ -21,6 +26,49 @@ hardcoded_agencies = ["한국사회보장정보원", "대검찰청", "한국출�
                       "기초과학연구원", "연구개발특구진흥재단", "서울신용보증재단", "방송통신위원회", "한국관광공사", "법무부",
                       "여성가족부", "국회사무처", "국방정보본부", "태권도진흥재단", "보건복지부", "외교부"
                       ]
+
+
+# User model
+class User(UserMixin):
+    def __init__(self, user_id, username):
+        self.id = user_id
+        self.username = username
+
+hardcoded_users = [
+    {"user_id": 1, "username": "admin", "password": "admin"},
+    {"user_id": 2, "username": "user2", "password": "password2"}
+]
+
+@login_manager.user_loader
+def load_user(user_id):
+    # Find the user based on user_id
+    user_data = next((user for user in hardcoded_users if user["user_id"] == int(user_id)), None)
+    if user_data:
+        return User(user_data["user_id"], user_data["username"])
+    return None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        # Check if the username and password match (you may want to improve this part)
+        user_data = next((user for user in hardcoded_users if user["username"] == username and user["password"] == password), None)
+        if user_data:
+            user = User(user_data["user_id"], user_data["username"])
+            login_user(user)
+            return redirect(url_for('home'))
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 
 
 # 입찰공고 모두보기
@@ -208,11 +256,13 @@ def add_keyword():
 
 
 @app.route('/')
+@login_required
 def home():  # put application's code here
     return render_template("index.html")
 
 
 @app.route('/keyword')
+@login_required
 def main():  # put application's code here
     return render_template("keyword.html")
 

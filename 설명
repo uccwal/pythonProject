@@ -1,3 +1,6 @@
+라이브러리
+pip install Flask-Login
+
 jodalro_crawling_dictionarySpecifications - 사전규격 스크래핑
 
 jodalro_crawling_biddingNotice - 입찰공고 스크래핑

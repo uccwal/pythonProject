@@ -177,6 +177,7 @@ def periodic_task():
 
     #print("Scheduled task completed")
 
+periodic_task()
 
 # 스케줄링을 설정합니다. 10초마다 함수를 실행하도록 설정합니다.
 schedule.every(2).seconds.do(periodic_task)
